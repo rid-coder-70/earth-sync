@@ -14,25 +14,25 @@ Without a key, the API serves clearly labeled synthetic demo observations so the
 
 ## Deploy
 
-Deploy the Vite frontend to Vercel and the Express API to a Node host with persistent disk. The API uses SQLite to retain downloaded observations; Vercel's function filesystem is not durable, so deploying the existing API there would lose that history/cache between instances.
+For a no-cost prototype, deploy the Vite frontend to Vercel's Hobby plan and the Express API to Render's Free web service. This avoids a paid persistent disk, but the SQLite database is temporary: cached observations and history can disappear whenever the service restarts or redeploys. Render Free services can also sleep when idle, so the first API request afterward may be slow. Use persistent storage or an external database for durable history.
 
 ### 1. Deploy the API
 
-For example, create a Render Web Service from this repository with root directory `earth-sync`, build command `npm install && npm run build --workspace server`, and start command `npm run start --workspace server`. Attach a persistent disk mounted at `/var/data`, then set these environment variables:
+Create a Render Web Service from this repository. Leave **Root Directory** blank (the repository root), select the **Free** instance type, and use build command `npm install && npm run build --workspace server` and start command `npm run start --workspace server`. Set these environment variables:
 
-- `DATABASE_PATH=/var/data/earth-sync.sqlite`
+- `DATABASE_PATH=/tmp/earth-sync.sqlite` (temporary storage; do not attach a paid disk for this free setup)
 - `FIRMS_MAP_KEY` to your NASA FIRMS key (optional; without it, demo data is served)
-- `CLIENT_ORIGIN` to your Vercel site origin, such as `https://your-project.vercel.app`
+- `CLIENT_ORIGIN` to your Vercel site origin after deploying the frontend, such as `https://your-project.vercel.app`
 
-Wait for the service to start and check its `/api/health` endpoint.
+Deploy the service and copy its public URL. Check that URL with `/api/health` appended.
 
 ### 2. Deploy the frontend to Vercel
 
-Import the repository as a Vercel project and set **Root Directory** to `earth-sync/client`. Vercel should detect Vite; use `npm run build` and `dist` if it asks for a build command and output directory. Add this project environment variable:
+Import the same repository as a Vercel project and set **Root Directory** to `client`. Vercel should detect Vite; use `npm run build` and `dist` if it asks for a build command and output directory. Add this project environment variable:
 
 - `VITE_API_BASE_URL` to the API's origin, such as `https://your-api.onrender.com` (no trailing slash)
 
-Deploy or redeploy after setting the variable. The Vercel rewrite serves the app entry point on client-side routes. If you use a custom Vercel domain, add its origin to the API's comma-separated `CLIENT_ORIGIN` value and redeploy the API.
+Deploy or redeploy after setting the variable. The Vercel rewrite serves the app entry point on client-side routes. Once you have the Vercel URL, set `CLIENT_ORIGIN` in Render to that site's origin and redeploy the API. If you use a custom Vercel domain, include its origin in Render's comma-separated `CLIENT_ORIGIN` value too.
 
 ## Features and caveats
 
