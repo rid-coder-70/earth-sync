@@ -3,6 +3,9 @@ import type { Detection, SourceId } from '../types.js';
 import { sensorForSource } from '../types.js';
 
 const API = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
+export function firmsDayUrl(mapKey: string, source: SourceId, bbox: string, date: string): string {
+  return `${API}/${encodeURIComponent(mapKey)}/${source}/${bbox}/1/${date}`;
+}
 const value = (row: Record<string, string>, ...keys: string[]) => {
   for (const key of keys) if (row[key] !== undefined && row[key] !== '') return row[key];
   return '';
@@ -34,7 +37,7 @@ export function parseFirmsCsv(csv: string, source: SourceId): Detection[] {
 }
 
 export async function fetchFirmsDay(mapKey: string, source: SourceId, bbox: string, date: string): Promise<Detection[]> {
-  const url = `${API}/${encodeURIComponent(mapKey)}/${source}/${encodeURIComponent(bbox)}/1/${date}`;
+  const url = firmsDayUrl(mapKey, source, bbox, date);
   const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
   const text = await response.text();
   if (!response.ok) throw new Error(`FIRMS ${response.status}: ${text.slice(0, 200)}`);

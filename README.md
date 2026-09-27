@@ -1,4 +1,6 @@
-# EARTH SYNC
+# FIRE DNA
+
+![Fire-Dna: Earth illuminated by active fires](client/src/asstes/fire-earth.jpg)
 
 A fire activity explorer that presents NASA FIRMS MODIS and VIIRS active-fire observations together, with a transparent harmonized view. This MVP organizes existing satellite observations; it does not predict fires.
 
