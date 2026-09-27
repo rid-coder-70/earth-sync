@@ -10,7 +10,9 @@ export interface HistoricalResponse { demoMode: boolean; years: { year: number; 
 export interface UnusualResponse { unusual: boolean; date: string; count: number; explanation: string; baseline: { mean: number; standardDeviation: number; sampleDays: number; thresholdZScore: number }; }
 export interface CriticalPeriod { month: number; label: string; averageCount: number; recurrence: string; startMonth: number; endMonth: number; }
 export interface CriticalResponse { demoMode: boolean; periods: CriticalPeriod[]; }
-async function get<T>(path: string): Promise<T> { const response = await fetch(path); const data = await response.json(); if (!response.ok) throw new Error(data.error ?? 'Request failed'); return data as T; }
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? '';
+
+async function get<T>(path: string): Promise<T> { const response = await fetch(`${API_BASE_URL}${path}`); const data = await response.json(); if (!response.ok) throw new Error(data.error ?? 'Request failed'); return data as T; }
 export const api = {
   hotspots: (params: { bbox: string; start: string; end: string; sources: SourceId[]; view: ViewMode }) => get<HotspotsResponse>(`/api/hotspots?${new URLSearchParams({ ...params, sources: params.sources.join(',') })}`),
   calendar: (area: string, year: number, month: number) => get<CalendarResponse>(`/api/calendar?${new URLSearchParams({ area, year: String(year), month: String(month) })}`),

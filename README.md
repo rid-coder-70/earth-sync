@@ -12,6 +12,28 @@ A fire activity explorer that presents NASA FIRMS MODIS and VIIRS active-fire ob
 
 Without a key, the API serves clearly labeled synthetic demo observations so the full UI can be explored. Demo data is never represented as a live FIRMS result. The API key remains in the Express server and is not included in client responses.
 
+## Deploy
+
+Deploy the Vite frontend to Vercel and the Express API to a Node host with persistent disk. The API uses SQLite to retain downloaded observations; Vercel's function filesystem is not durable, so deploying the existing API there would lose that history/cache between instances.
+
+### 1. Deploy the API
+
+For example, create a Render Web Service from this repository with root directory `earth-sync`, build command `npm install && npm run build --workspace server`, and start command `npm run start --workspace server`. Attach a persistent disk mounted at `/var/data`, then set these environment variables:
+
+- `DATABASE_PATH=/var/data/earth-sync.sqlite`
+- `FIRMS_MAP_KEY` to your NASA FIRMS key (optional; without it, demo data is served)
+- `CLIENT_ORIGIN` to your Vercel site origin, such as `https://your-project.vercel.app`
+
+Wait for the service to start and check its `/api/health` endpoint.
+
+### 2. Deploy the frontend to Vercel
+
+Import the repository as a Vercel project and set **Root Directory** to `earth-sync/client`. Vercel should detect Vite; use `npm run build` and `dist` if it asks for a build command and output directory. Add this project environment variable:
+
+- `VITE_API_BASE_URL` to the API's origin, such as `https://your-api.onrender.com` (no trailing slash)
+
+Deploy or redeploy after setting the variable. The Vercel rewrite serves the app entry point on client-side routes. If you use a custom Vercel domain, add its origin to the API's comma-separated `CLIENT_ORIGIN` value and redeploy the API.
+
 ## Features and caveats
 
 - Request sources: `MODIS_NRT`, `MODIS_SP`, `VIIRS_SNPP_NRT`, `VIIRS_SNPP_SP`, `VIIRS_NOAA20_NRT`, and `VIIRS_NOAA21_NRT`.
