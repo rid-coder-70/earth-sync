@@ -23,6 +23,13 @@ const DEFAULT_SOURCES: SourceId[] = ['MODIS_NRT', 'VIIRS_SNPP_NRT'];
 const DEFAULT_BBOX = '-125,24,-66,50';
 const today = () => new Date().toISOString().slice(0, 10);
 const addDays = (date: string, amount: number) => { const value = new Date(`${date}T00:00:00Z`); value.setUTCDate(value.getUTCDate() + amount); return value.toISOString().slice(0, 10); };
+function requestError(error: unknown): string {
+  if (!(error instanceof Error)) return 'FIRMS request failed';
+  const causeCode = (error as Error & { cause?: { code?: string } }).cause?.code;
+  if (causeCode === 'ETIMEDOUT' || causeCode === 'UND_ERR_CONNECT_TIMEOUT') return 'NASA FIRMS connection timed out (check server internet access)';
+  if (causeCode === 'ENOTFOUND' || causeCode === 'EAI_AGAIN') return 'Could not resolve NASA FIRMS host (check server DNS/internet access)';
+  return causeCode ? `${error.message} (${causeCode})` : error.message;
+}
 
 async function loadObservations(bbox: string, dates: string[], sources: SourceId[]) {
   const records = [] as Awaited<ReturnType<typeof fetchFirmsDay>>;
@@ -38,7 +45,7 @@ async function loadObservations(bbox: string, dates: string[], sources: SourceId
         saveFetchedRecords(bbox, date, source, fetched);
         records.push(...fetched);
       } catch (error) {
-        errors.push(`${source} ${date}: ${error instanceof Error ? error.message : 'FIRMS request failed'}`);
+        errors.push(`${source} ${date}: ${requestError(error)}`);
       }
     }
   }
@@ -72,10 +79,11 @@ app.get('/api/hotspots', asyncRoute(async (req, res) => {
   const sources = readSources(req.query.sources);
   const view = typeof req.query.view === 'string' ? req.query.view : 'all';
   const loaded = await loadObservations(bbox, dates, sources);
-  const records = demoMode ? demoDetections(start, end, bbox, sources) : loaded.records;
+  const fallbackDemo = !demoMode && loaded.errors.length > 0 && loaded.records.length === 0;
+  const records = demoMode || fallbackDemo ? demoDetections(start, end, bbox, sources) : loaded.records;
   const visible = records.filter(item => view === 'modis' ? item.sensor === 'MODIS' : view === 'viirs' ? item.sensor === 'VIIRS' : true);
   const clusters = harmonize(visible);
-  res.json({ bbox, start, end, view, demoMode, records: visible, harmonized: clusters, totals: { modis: records.filter(item => item.sensor === 'MODIS').length, viirs: records.filter(item => item.sensor === 'VIIRS').length, harmonized: harmonize(records).length }, errors: loaded.errors });
+  res.json({ bbox, start, end, view, demoMode: demoMode || fallbackDemo, records: visible, harmonized: clusters, totals: { modis: records.filter(item => item.sensor === 'MODIS').length, viirs: records.filter(item => item.sensor === 'VIIRS').length, harmonized: harmonize(records).length }, errors: loaded.errors });
 }));
 
 app.get('/api/calendar', asyncRoute(async (req, res) => {
